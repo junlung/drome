@@ -44,7 +44,12 @@ defmodule Drome.MixProject do
       {:gettext, "~> 0.20"},
       {:jason, "~> 1.2"},
       {:dns_cluster, "~> 0.1.1"},
-      {:bandit, "~> 1.2"}
+      {:bandit, "~> 1.2"},
+      {:httpoison, "~> 1.8"},
+      {:poolboy, "~> 1.5.1"},
+      {:scrivener_ecto, "~> 2.7"},
+      {:timex, "~> 3.6"},
+      {:stream_gzip, "~> 0.4"}
     ]
   end
 

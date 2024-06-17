@@ -2,13 +2,15 @@ import Config
 
 # Configure your database
 config :drome, Drome.Repo,
+  ecto_repos: [Drome.Repo],
   username: "postgres",
   password: "postgres",
   hostname: "localhost",
   database: "drome_dev",
   stacktrace: true,
   show_sensitive_data_on_connection_error: true,
-  pool_size: 10
+  pool_size: 10,
+  migration_timestamps: [type: :timestamptz]
 
 # For development, we disable any cache and enable
 # debugging and code reloading.
@@ -64,3 +66,5 @@ config :phoenix, :plug_init_mode, :runtime
 
 # Disable swoosh api client as it is only required for production adapters.
 config :swoosh, :api_client, false
+
+config :drome, TMDB_API_KEY: "c840dee86e098a4dd2acc547fd731dd3"

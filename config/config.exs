@@ -7,8 +7,9 @@
 # General application configuration
 import Config
 
-config :drome,
+config :drome, Drome.Repo,
   ecto_repos: [Drome.Repo],
+  scrivener_defaults: [page_size: 10],
   generators: [timestamp_type: :utc_datetime]
 
 # Configures the endpoint
@@ -20,7 +21,8 @@ config :drome, DromeWeb.Endpoint,
     layout: false
   ],
   pubsub_server: Drome.PubSub,
-  live_view: [signing_salt: "ibM/2Zec"]
+  live_view: [signing_salt: "ibM/2Zec"],
+  server: true
 
 # Configures the mailer
 #
@@ -41,4 +43,4 @@ config :phoenix, :json_library, Jason
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
-import_config "#{config_env()}.exs"
+import_config "#{Mix.env}.exs"

@@ -7,6 +7,8 @@ defmodule DromeWeb.Router do
 
   scope "/api", DromeWeb do
     pipe_through :api
+
+    resources "/movies", MoviesController, except: [:new, :edit]
   end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development
