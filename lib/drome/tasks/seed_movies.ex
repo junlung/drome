@@ -17,7 +17,7 @@ defmodule Drome.Tasks.SeedMovies do
 
   def download_url do
     date = Date.utc_today()
-    date_string = Timex.format!(date, "%m_%d_%Y", :strftime)
+    date_string = Calendar.strftime(date, "%m_%d_%Y")
     "#{@base_url}#{date_string}.json.gz"
   end
 

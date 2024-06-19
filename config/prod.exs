@@ -1,15 +1,8 @@
 import Config
 
-config :drome, Drome.Repo,
-  ecto_repos: [Drome.Repo],
-  username: "postgres",
-  password: "postgres",
-  hostname: "localhost",
-  database: "drome_dev",
-  stacktrace: true,
-  show_sensitive_data_on_connection_error: true,
-  pool_size: 10,
-  migration_timestamps: [type: :timestamptz]
+config :drome, Drome.Endpoint,
+  url: [host: "localhost", port: 4000],
+  cache_static_manifest: "priv/static/cache_manifest.json"
 
 # Configures Swoosh API Client
 config :swoosh, api_client: Swoosh.ApiClient.Finch, finch_name: Drome.Finch

@@ -48,7 +48,6 @@ defmodule Drome.MixProject do
       {:httpoison, "~> 1.8"},
       {:poolboy, "~> 1.5.1"},
       {:scrivener_ecto, "~> 2.7"},
-      {:timex, "~> 3.6"},
       {:stream_gzip, "~> 0.4"}
     ]
   end
