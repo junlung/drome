@@ -12,6 +12,9 @@ config :drome, Drome.Repo,
   scrivener_defaults: [page_size: 10],
   generators: [timestamp_type: :utc_datetime]
 
+config :drome,
+  ecto_repos: [Drome.Repo]
+
 # Configures the endpoint
 config :drome, DromeWeb.Endpoint,
   url: [host: "localhost"],
