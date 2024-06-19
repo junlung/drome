@@ -1,55 +1,97 @@
-# File: docker_phx/Dockerfile
-FROM elixir:1.11.4-alpine as build
+# Find eligible builder and runner images on Docker Hub. We use Ubuntu/Debian
+# instead of Alpine to avoid DNS resolution issues in production.
+#
+# https://hub.docker.com/r/hexpm/elixir/tags?page=1&name=ubuntu
+# https://hub.docker.com/_/ubuntu?tab=tags
+#
+# This file is based on these images:
+#
+#   - https://hub.docker.com/r/hexpm/elixir/tags - for the build image
+#   - https://hub.docker.com/_/debian?tab=tags&page=1&name=bullseye-20240513-slim - for the release image
+#   - https://pkgs.org/ - resource for finding needed packages
+#   - Ex: hexpm/elixir:1.15.7-erlang-26.0.2-debian-bullseye-20240513-slim
+#
+ARG ELIXIR_VERSION=1.15.7
+ARG OTP_VERSION=26.0.2
+ARG DEBIAN_VERSION=bullseye-20240513-slim
+
+ARG BUILDER_IMAGE="hexpm/elixir:${ELIXIR_VERSION}-erlang-${OTP_VERSION}-debian-${DEBIAN_VERSION}"
+ARG RUNNER_IMAGE="debian:${DEBIAN_VERSION}"
+
+FROM ${BUILDER_IMAGE} as builder
 
 # install build dependencies
-RUN apk add --update git build-base nodejs npm yarn python3
+RUN apt-get update -y && apt-get install -y build-essential git \
+    && apt-get clean && rm -f /var/lib/apt/lists/*_*
 
-RUN mkdir /app
+# prepare build dir
 WORKDIR /app
 
-# install Hex + Rebar
-RUN mix do local.hex --force, local.rebar --force
+# install hex + rebar
+RUN mix local.hex --force && \
+    mix local.rebar --force
 
 # set build ENV
-ENV MIX_ENV=prod
+ENV MIX_ENV="prod"
 
 # install mix dependencies
 COPY mix.exs mix.lock ./
-COPY config config
 RUN mix deps.get --only $MIX_ENV
+RUN mkdir config
+
+# copy compile-time config files before we compile dependencies
+# to ensure any relevant config change will trigger the dependencies
+# to be re-compiled.
+COPY config/config.exs config/${MIX_ENV}.exs config/
 RUN mix deps.compile
 
-# build project
 COPY priv priv
+
 COPY lib lib
+
+COPY assets assets
+
+# compile assets
+RUN mix assets.deploy
+
+# Compile the release
 RUN mix compile
 
-# build release
-# at this point we should copy the rel directory but
-# we are not using it so we can omit it
-# COPY rel rel
+# Changes to config/runtime.exs don't require recompiling the code
+COPY config/runtime.exs config/
+
+COPY rel rel
 RUN mix release
 
-# prepare release image
-FROM alpine:3.16 AS app
-RUN apk upgrade --no-cache && \ 
-apk add --no-cache postgresql-client bash openssl libgcc libstdc++ ncurses-libs libssl1.1
+# start a new build stage so that the final image will only contain
+# the compiled release and other runtime necessities
+FROM ${RUNNER_IMAGE}
 
-# install runtime dependencies
-RUN apk add --update bash openssl postgresql-client
+RUN apt-get update -y && \
+  apt-get install -y libstdc++6 openssl libncurses5 locales ca-certificates \
+  && apt-get clean && rm -f /var/lib/apt/lists/*_*
 
-EXPOSE 4000
-ENV MIX_ENV=prod
+# Set the locale
+RUN sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && locale-gen
 
-# prepare app directory
-RUN mkdir /app
-WORKDIR /app
+ENV LANG en_US.UTF-8
+ENV LANGUAGE en_US:en
+ENV LC_ALL en_US.UTF-8
 
-# copy release to app container
-COPY --from=build /app/_build/prod/rel/drome .
-COPY entrypoint.sh .
-RUN chown -R nobody: /app
+WORKDIR "/app"
+RUN chown nobody /app
+
+# set runner ENV
+ENV MIX_ENV="prod"
+
+# Only copy the final release from the build stage
+COPY --from=builder --chown=nobody:root /app/_build/${MIX_ENV}/rel/drome ./
+
 USER nobody
 
-ENV HOME=/app
-CMD ["bash", "/app/entrypoint.sh"]
+# If using an environment that doesn't automatically reap zombie processes, it is
+# advised to add an init process such as tini via `apt-get install`
+# above and adding an entrypoint. See https://github.com/krallin/tini for details
+# ENTRYPOINT ["/tini", "--"]
+
+CMD ["/app/bin/start"]
